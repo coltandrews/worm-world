@@ -129,6 +129,12 @@ button:focus-visible{outline:3px solid #fff;outline-offset:3px}
 .bigbtn.alt{background:var(--blue);color:#fff}
 .bigbtn.ready{background:#4cd964;color:var(--stroke)}
 .tog{font-family:var(--label);font-size:15px;padding:7px 12px;border-radius:8px;border:2px solid #fff;background:#1c2233;color:#fff;cursor:pointer}
+.tabs{display:flex;gap:6px;background:var(--box);border:3px solid #fff;border-radius:14px;padding:5px;box-shadow:0 6px 0 rgba(0,0,0,.45)}
+.tab{font-family:var(--display);font-size:22px;padding:8px 26px 4px;border:0;border-radius:9px;background:transparent;color:#b8bccc;cursor:pointer}
+.tab.on{background:var(--gold);color:var(--stroke)}
+#tabLocal,#tabOnline{justify-items:center;width:min(360px,100%)}
+#tabLocal .seg,#tabOnline .field{justify-self:stretch}
+.mcard>.mbox,.mcard>details{width:min(360px,100%)}
 .keysbox summary{font-family:var(--label);font-size:15px;cursor:pointer}
 .keysbox .keys{margin-top:10px}
 .coderow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:var(--label)}
@@ -194,16 +200,19 @@ button:focus-visible{outline:3px solid #fff;outline-offset:3px}
 <div id="menu" class="overlay">
   <div class="mcard">
     <h1 class="title" id="menuTitle">Worm<span>World</span></h1>
-    <div class="tagline" id="menuText">A big island full of tunnels and towers. Find them before they find you.</div>
-    <div class="mbox">
-      <label class="field"><span>Your name</span><input id="nameIn" maxlength="14" autocomplete="off" spellcheck="false" placeholder="Worm"></label>
-      <div class="netrow"><button class="bigbtn mid" id="hostBtn">Host online</button></div>
-      <div class="netrow"><input id="codeIn" maxlength="4" autocomplete="off" spellcheck="false" placeholder="CODE"><button class="bigbtn mid alt" id="joinBtn">Join</button></div>
-    </div>
-    <div class="mbox">
-      <div class="seg" id="hsTeams"><span>Hotseat teams</span><button data-t="2" class="on">2</button><button data-t="3">3</button><button data-t="4">4</button></div>
-      <div class="seg" id="hsWorms"><span>Worms per team</span><button data-n="2">2</button><button data-n="3" class="on">3</button><button data-n="4">4</button></div>
+    <div class="tagline" id="menuText">Find them before they find you.</div>
+    <div class="tabs" role="tablist"><button class="tab on" role="tab" data-tab="local" id="tabLocalBtn">Local</button><button class="tab" role="tab" data-tab="online" id="tabOnlineBtn">Online</button></div>
+    <div class="mbox" id="tabLocal">
+      <div class="seg" id="hsTeams"><span>Teams</span><button data-t="2" class="on">2</button><button data-t="3">3</button><button data-t="4">4</button></div>
+      <div class="seg" id="hsWorms"><span>Worms each</span><button data-n="2">2</button><button data-n="3" class="on">3</button><button data-n="4">4</button></div>
       <button class="bigbtn mid" id="play" disabled>Building island…</button>
+      <div class="fine">Pass the keyboard and mouse when the turn changes.</div>
+    </div>
+    <div class="mbox" id="tabOnline" hidden>
+      <label class="field"><span>Your name</span><input id="nameIn" maxlength="14" autocomplete="off" spellcheck="false" placeholder="Worm"></label>
+      <div class="netrow"><button class="bigbtn mid" id="hostBtn">Host a game</button></div>
+      <div class="netrow"><input id="codeIn" maxlength="4" autocomplete="off" spellcheck="false" placeholder="CODE"><button class="bigbtn mid alt" id="joinBtn">Join</button></div>
+      <div class="fine">Up to 4 players, each on their own laptop.</div>
     </div>
     <details class="mbox keysbox"><summary>Controls</summary><div class="keys">
       <b>WASD</b><span>Crawl. Shift to hurry.</span>
@@ -237,7 +246,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:3px}
 <div id="coinBox" class="hud chunk"><svg viewBox="0 0 20 20" width="16" height="16"><circle cx="10" cy="10" r="8" fill="#ffd23f" stroke="#1a1108" stroke-width="2.5"/><path d="M10 5.5v9" stroke="#b8860b" stroke-width="2"/></svg><b id="coinN">0</b><small>B shop</small></div>
 <div id="shop" class="hud chunk" hidden><h3>Shop</h3><div id="shopList"></div><div class="fine">1–8 to buy · B to close</div></div>
 <div id="pause" class="overlay" hidden>
-  <div class="mcard"><h1 class="title" style="font-size:clamp(48px,9vw,90px)">Paused</h1>
+  <div class="mcard"><h1 class="title" id="pauseTitle" style="font-size:clamp(48px,9vw,90px)">Paused</h1>
     <div class="mbox"><div class="keys">
       <b>WASD</b><span>Crawl · Shift hurry</span><b>Space</b><span>Jump / thrust</span><b>Mouse</b><span>Aim</span><b>Click</b><span>Fire (hold to charge)</span><b>Tab</b><span>Weapon wheel</span><b>B</b><span>Shop</span><b>Enter</b><span>Chat</span><b>Esc</b><span>Pause</span>
     </div></div>
@@ -1623,7 +1632,7 @@ function clientStart(msg) {
     teams = msg.teams.map((sp, i) => ({ ...TEAM_DEF[sp.d], name: sp.label, owner: sp.owner, idx: i, worms: [], next: 0, gone: false, coins: 0, ammo: Object.fromEntries(WEAPONS.map(w => [w.id, w.ammo])) }));
     worms = msg.worms.map(d => { const t = teams[d.t], w = makeWorm(t, d.n); w.pos.set(d.p[0], d.p[1], d.p[2]); w.mesh.position.copy(w.pos); w.yaw = d.y; w.seen = {}; t.worms.push(w); return w; });
     buildTeamHud(); activeW = null; state = 'intro'; gameCount++;
-    NET.ready = true; showLobby(false); $('menu').hidden = true;
+    NET.ready = true; showLobby(false); $('menu').hidden = true; updatePause();
     addChat(null, null, 'Game on! Enter to chat.', true);
   }, 40);
 }
@@ -1679,7 +1688,7 @@ function backToMenu() {
   if (document.pointerLockElement) document.exitPointerLock();
   $('lobby').hidden = true; $('endScreen').hidden = true; $('pause').hidden = true;
   $('menuTitle').innerHTML = 'Worm<span>World</span>';
-  $('menuText').textContent = 'A big island full of tunnels and towers. Find them before they find you.';
+  $('menuText').textContent = 'Find them before they find you.';
   $('menu').hidden = false;
   playBtn.textContent = 'Play hotseat';
 }
@@ -2186,7 +2195,7 @@ canvas.addEventListener('mousedown', e => {
   if (e.button !== 0 || state === 'menu' || state === 'over') return;
   if (chatOpen()) closeChat();
   initAudio();
-  if (!locked && !fallback) { requestLock(); return; }
+  if (!locked && !fallback) { requestLock(true); return; }
   if (wheelEl.classList.contains('show')) { wheelEl.classList.remove('show'); return; }
   if (shopOpen) { toggleShop(false); return; }
   if (!myTurn()) return;
@@ -2214,12 +2223,21 @@ canvas.addEventListener('wheel', e => {
   wheelAcc += d;
   if (Math.abs(wheelAcc) >= 120 && nowT - wheelLast > 180) { cycleWeapon(wheelAcc > 0 ? 1 : -1); wheelAcc = 0; wheelLast = nowT; }
 }, { passive: false });
-function requestLock() { try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => { fallback = true; updatePause(); }); } catch (_) { fallback = true; updatePause(); } }
-document.addEventListener('pointerlockchange', () => { locked = document.pointerLockElement === canvas; updatePause(); });
-document.addEventListener('pointerlockerror', () => { fallback = true; updatePause(); });
+// Browsers only grant mouse capture right after a click. A request made later (an online game starting) can fail;
+// that just shows the "click to play" screen. Only repeated failures from real clicks switch to drag-to-aim.
+let lockFromClick = false, lockFails = 0;
+function requestLock(fromClick) {
+  if (!canvas.requestPointerLock) { fallback = true; updatePause(); return; }
+  lockFromClick = !!fromClick;
+  try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(lockFailed); } catch (_) { lockFailed(); }
+}
+function lockFailed() { if (lockFromClick && ++lockFails >= 2) fallback = true; updatePause(); }
+document.addEventListener('pointerlockchange', () => { locked = document.pointerLockElement === canvas; if (locked) lockFails = 0; updatePause(); });
+document.addEventListener('pointerlockerror', lockFailed);
 function updatePause() {
   paused = !locked && !fallback && state !== 'menu' && state !== 'over' && !chatOpen();
   document.getElementById('pause').hidden = !paused;
+  if (paused) { $('pauseTitle').textContent = lockFails || !gameCount ? 'Ready?' : 'Paused'; $('resume').textContent = 'Click to play'; }
   if (paused) { charging = false; keys.clear(); }
 }
 let hsTeams = 2;
@@ -2229,12 +2247,12 @@ document.querySelectorAll('#lobbyWorms button').forEach(b => b.addEventListener(
 const playBtn = document.getElementById('play');
 playBtn.addEventListener('click', () => {
   initAudio();
-  const start = () => { document.getElementById('menu').hidden = true; newGame(Array.from({ length: hsTeams }, (_, i) => ({ d: i, owner: 'local', label: TEAM_DEF[i].name }))); requestLock(); };
+  const start = () => { document.getElementById('menu').hidden = true; newGame(Array.from({ length: hsTeams }, (_, i) => ({ d: i, owner: 'local', label: TEAM_DEF[i].name }))); requestLock(true); };
   if (gameCount++ === 0 && worldReady) { start(); return; }
   playBtn.disabled = true; playBtn.textContent = 'Building island…';
   setTimeout(() => { genWorld((Math.random() * 4294967296) >>> 0); playBtn.disabled = false; playBtn.textContent = 'Play hotseat'; start(); }, 40);
 });
-document.getElementById('resume').addEventListener('click', () => { initAudio(); requestLock(); });
+document.getElementById('resume').addEventListener('click', () => { initAudio(); requestLock(true); });
 $('hostBtn').addEventListener('click', hostOnline);
 $('joinBtn').addEventListener('click', joinOnline);
 $('codeIn').addEventListener('keydown', e => { if (e.key === 'Enter') joinOnline(); });
@@ -2249,7 +2267,16 @@ $('copyLink').addEventListener('click', () => {
   try { navigator.clipboard.writeText(url).then(done, () => toastLocal(url)); } catch (e) { toastLocal(url); }
 });
 try { $('nameIn').value = localStorage.getItem('ww-name') || ''; } catch (e) {}
-{ const j = cleanCode(new URLSearchParams(location.search).get('join')); if (j.length === 4) { $('codeIn').value = j; setTimeout(() => $('nameIn').focus(), 100); } }
+function menuTab(t) {
+  $('tabLocal').hidden = t !== 'local'; $('tabOnline').hidden = t !== 'online';
+  $('tabLocalBtn').classList.toggle('on', t === 'local'); $('tabOnlineBtn').classList.toggle('on', t === 'online');
+  $('tabLocalBtn').setAttribute('aria-selected', t === 'local'); $('tabOnlineBtn').setAttribute('aria-selected', t === 'online');
+  try { localStorage.setItem('ww-tab', t); } catch (e) {}
+}
+$('tabLocalBtn').addEventListener('click', () => menuTab('local'));
+$('tabOnlineBtn').addEventListener('click', () => menuTab('online'));
+try { menuTab(localStorage.getItem('ww-tab') === 'online' ? 'online' : 'local'); } catch (e) {}
+{ const j = cleanCode(new URLSearchParams(location.search).get('join')); if (j.length === 4) { menuTab('online'); $('codeIn').value = j; setTimeout(() => $('nameIn').focus(), 100); } }
 document.getElementById('sndBtn').addEventListener('click', () => { initAudio(); setMuted(!SND.muted); });
 document.getElementById('voiceBtn').addEventListener('click', () => { SND.voices = !SND.voices; syncSoundButtons(); });
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
