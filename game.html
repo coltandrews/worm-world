@@ -242,7 +242,8 @@ button:focus-visible{outline:3px solid #fff;outline-offset:3px}
       <b>WASD</b><span>Crawl · Shift hurry</span><b>Space</b><span>Jump / thrust</span><b>Mouse</b><span>Aim</span><b>Click</b><span>Fire (hold to charge)</span><b>Tab</b><span>Weapon wheel</span><b>B</b><span>Shop</span><b>Enter</b><span>Chat</span><b>Esc</b><span>Pause</span>
     </div></div>
     <div class="seg"><button class="tog" id="sndBtn">Sound: On</button><button class="tog" id="voiceBtn">Voices: On</button></div>
-    <button class="bigbtn" id="resume">Resume</button></div>
+    <button class="bigbtn" id="resume">Resume</button>
+    <button class="tog" id="exitBtn">Exit to menu</button></div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -1682,6 +1683,7 @@ function backToMenu() {
   $('menuText').textContent = 'Find them before they find you.';
   $('menu').hidden = false;
   playBtn.textContent = 'Play hotseat';
+  paused = false; charging = false; keys.clear(); document.getElementById('wheel').classList.remove('show');
 }
 
 // --- chat ---
@@ -2244,6 +2246,11 @@ playBtn.addEventListener('click', () => {
   setTimeout(() => { genWorld((Math.random() * 4294967296) >>> 0); playBtn.disabled = false; playBtn.textContent = 'Play hotseat'; start(); }, 40);
 });
 document.getElementById('resume').addEventListener('click', () => { initAudio(); requestLock(true); });
+let exitArm = 0;
+$('exitBtn').addEventListener('click', () => {
+  if (performance.now() - exitArm > 3000) { exitArm = performance.now(); $('exitBtn').textContent = NET.mode === 'host' ? 'Ends the game for everyone. Click again' : 'Click again to leave'; setTimeout(() => { $('exitBtn').textContent = 'Exit to menu'; }, 3000); return; }
+  exitArm = 0; $('exitBtn').textContent = 'Exit to menu'; toggleShop(false); closeChat(); backToMenu();
+});
 $('hostBtn').addEventListener('click', hostOnline);
 $('joinBtn').addEventListener('click', joinOnline);
 $('codeIn').addEventListener('keydown', e => { if (e.key === 'Enter') joinOnline(); });
