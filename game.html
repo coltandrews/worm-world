@@ -2790,28 +2790,33 @@ splashFx = mirror('splashFx', splashFx); puff = mirror('puff', puff); tracer = m
 boomWorld = mirror('boomWorld', boomWorld); drillCarve = mirror('drillCarve', drillCarve); say = mirror('say', say);
 loopStart = mirror('loopStart', loopStart); loopStop = mirror('loopStop', loopStop);
 for (const k of Object.keys(sfx)) if (!['spotted', 'click', 'gull'].includes(k)) sfx[k] = mirror('sfx.' + k, sfx[k]);
+let frameErrs = 0;
 function frame(now) {
+  requestAnimationFrame(frame);  // schedule first so one bad frame can never freeze the game
   const dt = Math.min(1 / 30, (now - last) / 1000); last = now;
+  try { step(dt, now); } catch (e) { if (frameErrs++ < 5) console.error('Worm World frame error', e); }
+  document.body.classList.toggle('inmenu', state === 'menu' || !worms.length);
+  sun.position.set(camera.position.x + 70, 90, camera.position.z + 25); sun.target.position.set(camera.position.x, 0, camera.position.z);
+  renderer.render(scene, camera);
+}
+function step(dt, now) {
   if (state === 'menu') {
     menuSpin += dt * .05;
     camera.position.set(Math.sin(menuSpin) * 175, 75, Math.cos(menuSpin) * 175); camera.lookAt(0, 5, 0); lookSm.set(0, 5, 0);
     updateFx(dt); if (worldReady) updateScenery(dt, now / 1000);
   } else if (NET.mode === 'client' && state !== 'over') {
     if (NET.ready && worms.length) {
-      if (myTurn() && state === 'aim') arrowAim(dt);
-      clientTick(dt); updateScenery(dt, now / 1000); animPickups(dt, now / 1000); updateFx(dt); updateCamera(dt); updateHud(dt);
+      if (activeW && myTurn() && state === 'aim') arrowAim(dt);
+      clientTick(dt); updateScenery(dt, now / 1000); animPickups(dt, now / 1000); updateFx(dt);
+      if (activeW) { updateCamera(dt); updateHud(dt); }
     } else updateFx(dt);
-  } else if ((!paused || NET.mode === 'host') && state !== 'over') {
+  } else if ((!paused || NET.mode === 'host') && state !== 'over' && activeW) {
     if (NET.mode === 'host') applyRemoteInput();
     if (myTurn()) arrowAim(dt);
     updateScenery(dt, now / 1000);
     updateWorms(dt); updateProjectiles(dt); updateMines(dt); updatePickups(dt); animPickups(dt, now / 1000); updateFx(dt); updateState(dt); updateCamera(dt); updateHud(dt);
     if (NET.mode === 'host') hostTick(dt);
   } else updateFx(dt);
-  document.body.classList.toggle('inmenu', state === 'menu' || !worms.length);
-  sun.position.set(camera.position.x + 70, 90, camera.position.z + 25); sun.target.position.set(camera.position.x, 0, camera.position.z);
-  renderer.render(scene, camera);
-  requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 setTimeout(() => {
