@@ -2633,7 +2633,7 @@ function thirdPersonPose(target, dist = 6) {
 }
 function updateCamera(dt) {
   if (mapView) {
-    const want = new V3(0, 175, 95), look = new V3(0, 0, 8);
+    const k = 1 / Math.min(1, camera.aspect * .9), want = new V3(0, 175 * k, 95 * k), look = new V3(0, 0, 8);
     camPosSm.lerp(want, 1 - Math.exp(-3 * dt)); lookSm.lerp(look, 1 - Math.exp(-3 * dt));
     camera.position.copy(camPosSm); camera.lookAt(lookSm);
     return;
