@@ -2289,7 +2289,7 @@ document.getElementById('voiceBtn').addEventListener('click', () => { SND.voices
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 
 // ---------- worm physics ----------
-const H_WALK = [.72, 1.15], H_AIR = [.3, .72, 1.15];
+const H_WALK = [.92, 1.2], H_AIR = [.3, .72, 1.15];
 function airStep(w, dt, control) {
   const sub = 3, s = dt / sub;
   for (let k = 0; k < sub; k++) {
@@ -2318,7 +2318,7 @@ function airStep(w, dt, control) {
       else {
         w.vel.x *= .35; w.vel.z *= .35; w.grounded = true;
         if (impact > 6) sfx.land(w.pos, impact);
-        if (impact > 11) hurt(w, Math.round((impact - 11) * 3.2));
+        if (impact > 14.5) hurt(w, Math.round((impact - 14.5) * 2));
         return;
       }
     } else w.pos.y = ny;
@@ -2357,7 +2357,7 @@ function updateWorms(dt) {
       // sliding on steep rock
       if (!solidB(w.pos.x, w.pos.y - .1, w.pos.z)) {
         const n = tNormal(w.pos.x, w.pos.y - .2, w.pos.z);
-        if (n.y < .6) { w.vel.x += n.x * 16 * dt; w.vel.z += n.z * 16 * dt; }
+        if (n.y < .4) { w.vel.x += n.x * 12 * dt; w.vel.z += n.z * 12 * dt; }
       }
       unwedge(w, dt, H_WALK);
       const k = Math.exp(-6 * dt); w.vel.x *= k; w.vel.z *= k;
@@ -2371,7 +2371,7 @@ function updateWorms(dt) {
         if (s === undefined) { w.pos.x = tx; w.pos.z = tz; w.grounded = false; w.vel.x = mx / dt; w.vel.z = mz / dt; return true; }
         const rise = s - w.pos.y;
         if (rise > .03) {
-          if (solidB(tx, s - .05, tz) ? rise > .6 : rise / dist > 1.5) return false;
+          if (solidB(tx, s - .05, tz) ? rise > .6 : rise / dist > 2.6) return false;
           if (bodyHit(tx, s, tz, [1.15]) && !bodyHit(w.pos.x, w.pos.y, w.pos.z, [1.15])) return false;
         }
         w.pos.set(tx, s, tz); return true;
