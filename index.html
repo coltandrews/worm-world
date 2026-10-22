@@ -166,6 +166,12 @@ button:focus-visible{outline:3px solid #fff;outline-offset:3px}
 .si b{font-weight:400;color:var(--gold)}
 .si em{font-style:normal;font-size:12px;color:#b8bccc}
 .si.poor{opacity:.45}
+#mapBtn{pointer-events:auto;display:block;width:100%;margin-top:4px;font-family:var(--label);font-size:12px;line-height:1;padding:4px 0 3px;border:0;border-radius:5px;background:#2d3550;color:#fff;cursor:pointer}
+#mapBtn:hover,.mapview #mapBtn{background:var(--gold);color:var(--stroke)}
+.mapview .tag{gap:2px}
+.mapview .tag div{font-size:14px;padding:3px 7px 2px;border-width:2px;box-shadow:0 0 0 3px var(--tc,#fff),0 3px 8px rgba(0,0,0,.5)}
+.mapview .tag .nm{background:var(--tc,#0d0e14);color:#fff!important;-webkit-text-stroke:3px var(--stroke);paint-order:stroke fill}
+.mapview #cross,.mapview #wheel{display:none!important}
 .tname{max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:760px){#teams{width:min(300px,52vw);bottom:110px}#hint{display:none}#mini canvas{width:120px;height:120px}}
 @media (prefers-reduced-motion:reduce){#banner,.tag .arrow,#windFill,#timerBox.pulse,#wheel{animation:none;transition:none}}
@@ -177,7 +183,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:3px}
 <div id="stage"></div>
 <div id="labels"></div>
 
-<div id="mini" class="hud chunk"><canvas id="miniCanvas" width="170" height="170"></canvas></div>
+<div id="mini" class="hud chunk"><canvas id="miniCanvas" width="170" height="170"></canvas><button id="mapBtn" type="button">Map (V)</button></div>
 <div id="left" class="hud">
   <div id="timerBox" class="chunk"><div id="timer" class="outline-s">60</div></div>
   <div id="weaponBox" class="chunk"><svg id="weaponIcon" viewBox="0 0 52 52"></svg><div><div id="weaponName">Bazooka</div><div id="weaponHint"></div></div></div>
@@ -221,6 +227,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:3px}
       <b>Click</b><span>Fire. Hold to charge throwing weapons.</span>
       <b>Tab</b><span>Weapon wheel (Shift+Tab goes back)</span>
       <b>B</b><span>Shop: spend coins on the big stuff</span>
+      <b>V</b><span>Map view: see the whole island and every worm</span>
       <b>Enter</b><span>Chat</span>
     </div></details>
   </div>
@@ -248,7 +255,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:3px}
 <div id="pause" class="overlay" hidden>
   <div class="mcard"><h1 class="title" id="pauseTitle" style="font-size:clamp(48px,9vw,90px)">Paused</h1>
     <div class="mbox"><div class="keys">
-      <b>WASD</b><span>Crawl · Shift hurry</span><b>Space</b><span>Jump / thrust</span><b>Mouse</b><span>Aim</span><b>Click</b><span>Fire (hold to charge)</span><b>Tab</b><span>Weapon wheel</span><b>B</b><span>Shop</span><b>Enter</b><span>Chat</span><b>Esc</b><span>Pause</span>
+      <b>WASD</b><span>Crawl · Shift hurry</span><b>Space</b><span>Jump / thrust</span><b>Mouse</b><span>Aim</span><b>Click</b><span>Fire (hold to charge)</span><b>Tab</b><span>Weapon wheel</span><b>B</b><span>Shop</span><b>V</b><span>Map view</span><b>Enter</b><span>Chat</span><b>Esc</b><span>Pause</span>
     </div></div>
     <div class="seg"><button class="tog" id="sndBtn">Sound: On</button><button class="tog" id="voiceBtn">Voices: On</button></div>
     <button class="bigbtn" id="resume">Resume</button>
@@ -754,14 +761,17 @@ function makeWorm(team, name) {
   const jet = new THREE.Group(); jet.position.set(0, .6, .42);
   for (const sx of [-.17, .17]) { const t = sh(new THREE.Mesh(new THREE.CylinderGeometry(.13, .13, .55, 12), jetMat)); t.position.x = sx; jet.add(t); }
   jet.visible = false; g.add(jet);
+  const beacon = new THREE.Mesh(new THREE.CylinderGeometry(.35, .35, 40, 8, 1, true), new THREE.MeshBasicMaterial({ color: team.color, transparent: true, opacity: .55, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  beacon.position.y = 21; beacon.visible = false; g.add(beacon);
   const gun = new THREE.Group(); gun.position.set(.36, .8, -.1);
   g.add(gun);
   world.add(g);
   const label = document.createElement('div'); label.className = 'tag';
+  label.style.setProperty('--tc', team.css);
   label.innerHTML = `<div class="arrow">▼</div><div class="nm" style="color:${team.css}">${name}</div><div class="hp" style="color:${team.css}">100</div>`;
   document.getElementById('labels').appendChild(label);
   return { team, name, hp: 100, shownHp: 100, pos: new V3(), vel: new V3(), grounded: false, dead: false, vis: true,
-    voice: 480 + rand() * 300, ttsPitch: 1.25 + rand() * .4, mesh: g, gun, gunKind: '', jetMesh: jet, body, yaw: rand() * Math.PI * 2, label, hpEl: label.querySelector('.hp'), bob: rand() * 6,
+    voice: 480 + rand() * 300, ttsPitch: 1.25 + rand() * .4, mesh: g, gun, gunKind: '', jetMesh: jet, beacon, body, yaw: rand() * Math.PI * 2, label, hpEl: label.querySelector('.hp'), bob: rand() * 6,
     zip: null, jet: 0, fallFrom: null };
 }
 function heldModel(id) {
@@ -1692,7 +1702,7 @@ function backToMenu() {
   $('menuText').textContent = 'Find them before they find you.';
   $('menu').hidden = false;
   playBtn.textContent = 'Play hotseat';
-  paused = false; charging = false; keys.clear(); document.getElementById('wheel').classList.remove('show');
+  paused = false; charging = false; keys.clear(); document.getElementById('wheel').classList.remove('show'); toggleMap(false);
 }
 
 // --- chat ---
@@ -1725,6 +1735,16 @@ chatIn.addEventListener('keydown', e => {
 chatIn.addEventListener('keyup', e => e.stopPropagation());
 
 let toastLocal, sayLocal;
+let mapView = false;
+function toggleMap(on) {
+  mapView = on === undefined ? !mapView : !!on;
+  if (mapView && (state === 'menu' || !worms.length)) mapView = false;
+  document.body.classList.toggle('mapview', mapView);
+  for (const w of worms) if (w.beacon) w.beacon.visible = mapView && !w.dead;
+  if (scene.fog) { scene.fog.near = mapView ? 320 : 120; scene.fog.far = mapView ? 800 : 340; }
+  if (mapView) { keys.clear(); charging = false; tween = null; toggleShop(false); wheelEl.classList.remove('show'); }
+  else { const pose = activeW ? thirdPersonPose(activeW.pos) : null; if (pose) tween = { t: 0, dur: .9, fromPos: camera.position.clone(), fromLook: lookSm.clone(), toPos: pose.pos, toLook: pose.look }; }
+}
 // ---------- game state ----------
 let teams = [], worms = [], projectiles = [], mines = [];
 let state = 'menu', turnT = 0, watchT = 0, introT = 0;
@@ -1903,7 +1923,7 @@ function endTurn() {
   nextTurn();
 }
 function gameOver(winner) {
-  state = 'over';
+  state = 'over'; toggleMap(false);
   if (document.pointerLockElement) document.exitPointerLock();
   toggleShop(false);
   if (NET.mode !== 'local') {
@@ -2182,6 +2202,8 @@ addEventListener('keydown', e => {
   if (e.code === 'Tab') { cycleWeapon(e.shiftKey ? -1 : 1); return; }
   if (e.repeat) return;
   keys.add(e.code);
+  if (e.code === 'KeyV') { toggleMap(); return; }
+  if (mapView && e.code !== 'KeyM') { keys.delete(e.code); if (e.code === 'Escape') toggleMap(false); return; }
   if (e.code === 'KeyB') { toggleShop(); return; }
   if (shopOpen) { const n = e.code.match(/^Digit([1-8])$/); if (n) { const i = +n[1] - 1; if (NET.mode === 'client') act('buy', { i }); else buy(i); setTimeout(renderShop, 120); return; } }
   if (e.code === 'Space' && myTurn()) { jumpReq = true; act('jump'); }
@@ -2200,6 +2222,7 @@ canvas.addEventListener('mousedown', e => {
   if (!locked && !fallback) { requestLock(true); return; }
   if (wheelEl.classList.contains('show')) { wheelEl.classList.remove('show'); return; }
   if (shopOpen) { toggleShop(false); return; }
+  if (mapView) { toggleMap(false); return; }
   if (!myTurn()) return;
   const sheep = projectiles.find(p => p.kind === 'sheep');
   if (state === 'flight' && sheep) { if (NET.mode === 'client') act('detonate'); else detonateSheep(); return; }
@@ -2260,6 +2283,7 @@ $('exitBtn').addEventListener('click', () => {
   if (performance.now() - exitArm > 3000) { exitArm = performance.now(); $('exitBtn').textContent = NET.mode === 'host' ? 'Ends the game for everyone. Click again' : 'Click again to leave'; setTimeout(() => { $('exitBtn').textContent = 'Exit to menu'; }, 3000); return; }
   exitArm = 0; $('exitBtn').textContent = 'Exit to menu'; toggleShop(false); closeChat(); backToMenu();
 });
+$('mapBtn').addEventListener('click', e => { e.stopPropagation(); toggleMap(); });
 $('hostBtn').addEventListener('click', hostOnline);
 $('joinBtn').addEventListener('click', joinOnline);
 $('codeIn').addEventListener('keydown', e => { if (e.key === 'Enter') joinOnline(); });
@@ -2617,6 +2641,12 @@ function thirdPersonPose(target, dist = 6) {
   return { pos, look: f };
 }
 function updateCamera(dt) {
+  if (mapView) {
+    const want = new V3(0, 175, 95), look = new V3(0, 0, 8);
+    camPosSm.lerp(want, 1 - Math.exp(-3 * dt)); lookSm.lerp(look, 1 - Math.exp(-3 * dt));
+    camera.position.copy(camPosSm); camera.lookAt(lookSm);
+    return;
+  }
   if (tween) {
     tween.t += dt / tween.dur;
     const t = Math.min(1, tween.t), e = t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -2766,8 +2796,9 @@ function updateHud(dt) {
     if (w.shownHp > w.hp) { w.shownHp = Math.max(w.hp, w.shownHp - dt * 60); w.hpEl.textContent = Math.round(w.shownHp); }
     const s = toScreen(w.pos.clone().add(new V3(0, 1.9, 0)));
     const dCam = camera.position.distanceTo(w.pos);
-    w.label.hidden = !s.vis || !w.vis || dCam > 140;
-    w.label.style.transform = `translate(${s.x}px,${s.y}px) translate(-50%,-100%) scale(${Math.max(.6, Math.min(1, 30 / dCam))})`;
+    w.label.hidden = mapView ? !s.vis : (!s.vis || !w.vis || dCam > 140);
+    w.label.style.transform = `translate(${s.x}px,${s.y}px) translate(-50%,-100%) scale(${mapView ? 1 : Math.max(.6, Math.min(1, 30 / dCam))})`;
+    if (w.beacon) w.beacon.visible = mapView;
     w.label.classList.toggle('active', w === activeW && state === 'aim');
     w.mesh.visible = true;
   }
